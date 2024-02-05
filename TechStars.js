@@ -1,7 +1,7 @@
 // Require the necessary discord.js classes
 
 const { Client, Events, Collection, GatewayIntentBits } = require("discord.js");
-const rundb = require("./Database")
+const {rundb , ensureAllServersExist} = require("./Database")
 // const { connect } = require('mongoose')
 
 //Support classes
@@ -15,12 +15,25 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 // When the client is ready, run this code (only once).
 // The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
 // It makes some properties non-nullable.
-client.once(Events.ClientReady, (readyClient) => {
+client.once(Events.ClientReady, async (readyClient) => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+
+  client.dbconn = await rundb();
+
+  await ensureAllServersExist(client);
 });
 
+//When bot joins a new server
+client.on('guildCreate',async (guild) => {
+  console.log(`Bot joined a new server: ${guild.name} (ID: ${guild.id})`);
+
+  //Update server collection THIS IS NOT VERY SCALEABLE
+  await ensureAllServersExist(client);
+})
+
+
+
 client.commands = new Collection();
-client.db = rundb();
 
 const foldersPath = path.join(__dirname, "commands");
 const commandFolders = fs.readdirSync(foldersPath);
@@ -76,10 +89,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
   console.log(interaction);
 });
 
+
+
 // Log in to Discord with your client's token
 client.login(token);
 
-// (async () => {
-// 	await connect(dbConnection).catch(console.error);
-// })();
+//console.log(client.dbconn.db("admin").command({ ping: 1 }));
+
+
 

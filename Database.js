@@ -22,11 +22,38 @@ async function rundb() {
     // Send a ping to confirm a successful connection
     await dbclient.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
+    return dbclient;
+  } catch {
     // Ensures that the client will close when you finish/error
     await dbclient.close();
   }
-  return dbclient;
+  
 }
 
-module.exports = rundb;
+
+async function ensureAllServersExist(client) {
+  const database = client.dbconn.db('TechstarsBot');
+  const serversCollection = database.collection('servers');
+
+  // Get the list of guilds and loop through each checking if they exist
+  const guilds = client.guilds.cache//.each((guild) => {
+  
+  for(const [, guild] of guilds){
+    const existingServer =  await serversCollection.findOne({ serverId : guild.id });
+
+    if (!existingServer) {
+      console.log(`Server ${guild.id} does not exist. Creating...`);
+      
+      await serversCollection.insertOne({
+        'serverId' : guild.id,
+        'name' : guild.name   
+      });
+    }
+  }
+}
+
+
+module.exports = {
+  ensureAllServersExist,
+  rundb,
+};

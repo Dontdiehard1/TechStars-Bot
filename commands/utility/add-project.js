@@ -19,8 +19,6 @@ module.exports = {
 			"members" : []
 		});
 
-
-
 		await interaction.reply("Added Project: " + interaction.options.getString('name'));
 	},
 }; 

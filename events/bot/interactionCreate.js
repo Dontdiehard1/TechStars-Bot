@@ -26,28 +26,36 @@ module.exports = {
 
             //See if its our join buttons 
             if(interaction.customId.includes("JoinButton")){
-                console.log(interaction);
 
                 const clientdb = interaction.client.dbconn.db("TechstarsBot");
                 const coll = clientdb.collection("projects");
                 const project = (interaction.customId.split(':'))[1];
 
+                const projectCheck = await coll.findOne({
+                    'server' : interaction.guildId,
+                    'members' : interaction.member.id
+                });
+
+                if( projectCheck !== null){ //leave funtion if memeber is already a part of a team
+                    interaction.reply({
+                        content: ("You are already in a team"),
+                        ephemeral: true
+                    });
+                    return 
+                }
+                
                 //add members id to the project
                 coll.updateOne(
                     {teamName: project, server: interaction.guildId},
                     { $push: {members : interaction.member.id}}
                 );
 
-
                 //TODO: assign user that projects role
-                //TODO: Check if User is already part of team then dont assign them
-
+                
                 interaction.reply({
                     content: ('Joined Team ' + project),
                     ephemeral: true
                 });
-                
-                console.log(interaction.member);
             }
         }
 	},

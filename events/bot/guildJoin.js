@@ -1,4 +1,4 @@
-const { ensureAllServersExist } = require("../Database");
+const { ensureAllServersExist } = require("../../Database");
 const { Events } = require('discord.js');
 
 module.exports ={

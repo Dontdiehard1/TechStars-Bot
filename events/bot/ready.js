@@ -1,5 +1,5 @@
 const { Events } = require('discord.js');
-const {rundb , ensureAllServersExist} = require("../Database");
+const {rundb , ensureAllServersExist} = require("../../Database");
 
 
 module.exports = {

@@ -45,12 +45,15 @@ module.exports = {
                 }
                 
                 //add members id to the project
+                //TODO: Could remove this and allow the roleUpdate to handle the add
                 coll.updateOne(
                     {teamName: project, server: interaction.guildId},
                     { $push: {members : interaction.member.id}}
                 );
 
                 //TODO: assign user that projects role
+                interaction.member.roles.add(interaction.guild.roles.cache.find(role => role.name === project));
+
                 
                 interaction.reply({
                     content: ('Joined Team ' + project),

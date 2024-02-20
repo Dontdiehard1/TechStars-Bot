@@ -1,7 +1,12 @@
 // Require the necessary discord.js classes
 
-const { Client, Events, Collection, GatewayIntentBits } = require("discord.js");
-const {rundb , ensureAllServersExist} = require("./Database")
+const {
+	Client,
+	Events,
+	Collection,
+	GatewayIntentBits,
+	Partials,
+} = require("discord.js");
 // const { connect } = require('mongoose')
 
 //Support classes
@@ -10,28 +15,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-
-// When the client is ready, run this code (only once).
-// The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
-// It makes some properties non-nullable.
-client.once(Events.ClientReady, async (readyClient) => {
-  console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-
-  client.dbconn = await rundb();
-
-  await ensureAllServersExist(client);
+const client = new Client({
+	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+	partials: [Partials.GuildMember],
 });
-
-//When bot joins a new server
-client.on('guildCreate',async (guild) => {
-  console.log(`Bot joined a new server: ${guild.name} (ID: ${guild.id})`);
-
-  //Update server collection THIS IS NOT VERY SCALEABLE
-  await ensureAllServersExist(client);
-})
-
-
 
 client.commands = new Collection();
 
@@ -40,61 +27,57 @@ const commandFolders = fs.readdirSync(foldersPath);
 
 //Puts all the commands in a collection
 for (const folder of commandFolders) {
-  const commandsPath = path.join(foldersPath, folder);
-  const commandFiles = fs
-    .readdirSync(commandsPath)
-    .filter((file) => file.endsWith(".js"));
-  for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
-    // Set a new item in the Collection with the key as the command name and the value as the exported module
-    if ("data" in command && "execute" in command) {
-      client.commands.set(command.data.name, command);
-    } else {
-      console.log(
-        `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
-      );
-    }
-  }
+	const commandsPath = path.join(foldersPath, folder);
+	const commandFiles = fs
+		.readdirSync(commandsPath)
+		.filter((file) => file.endsWith(".js"));
+	for (const file of commandFiles) {
+		const filePath = path.join(commandsPath, file);
+		const command = require(filePath);
+		// Set a new item in the Collection with the key as the command name and the value as the exported module
+		if ("data" in command && "execute" in command) {
+			client.commands.set(command.data.name, command);
+		} else {
+			console.log(
+				`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+			);
+		}
+	}
 }
 
-//Runs the commands execute function when the commands are called
-client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+//event handlers
+const eventsFolderPath = path.join(__dirname, "events");
+const eventsFolders = fs.readdirSync(eventsFolderPath);
 
-  const command = interaction.client.commands.get(interaction.commandName);
+for (const folder of eventsFolders) {
+	const eventPath = path.join(eventsFolderPath, folder);
+	const eventFiles = fs
+		.readdirSync(eventPath)
+		.filter((file) => file.endsWith(".js"));
 
-  if (!command) {
-    console.error(`No command matching ${interaction.commandName} was found.`);
-    return;
-  }
+	for (const file of eventFiles) {
+		const filePath = path.join(eventPath, file);
+		const event = require(filePath);
 
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(error);
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({
-        content: "There was an error while executing this command!",
-        ephemeral: true,
-      });
-    } else {
-      await interaction.reply({
-        content: "There was an error while executing this command!",
-        ephemeral: true,
-      });
-    }
-  }
-
-  console.log(interaction);
-});
-
-
+		if (filePath.includes("events\\client")) {
+			if (event.once) {
+				client.once(event.name, (...args) =>
+					event.execute(client.dbconn, ...args)
+				);
+			} else {
+				client.on(event.name, (...args) =>
+					event.execute(client.dbconn, ...args)
+				);
+			}
+		} else {
+			if (event.once) {
+				client.once(event.name, (...args) => event.execute(...args));
+			} else {
+				client.on(event.name, (...args) => event.execute(...args));
+			}
+		}
+	}
+}
 
 // Log in to Discord with your client's token
 client.login(token);
-
-//console.log(client.dbconn.db("admin").command({ ping: 1 }));
-
-
-

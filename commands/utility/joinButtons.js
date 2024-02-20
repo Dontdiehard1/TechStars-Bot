@@ -1,4 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle,SlashCommandBuilder } = require('discord.js');
+const createRole = require('../../utils/createRole');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -18,16 +19,13 @@ module.exports = {
                                 .setLabel(project.teamName)
                                 .setStyle(ButtonStyle.Secondary);
 
-                        buttons.push(button)
+                        buttons.push(button);
+
+                        createRole(interaction.guild,project.teamName);
                 }
 
-                const row = new ActionRowBuilder()
-			.addComponents(buttons);
 
-
-                //TODO:Create the roles
-
-                
+                const row = new ActionRowBuilder().addComponents(buttons);
 
                 await interaction.reply({
                         content : "test",

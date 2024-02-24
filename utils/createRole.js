@@ -1,4 +1,4 @@
-const { Permissions } = require("discord.js");
+const { Permissions, RoleFlags } = require("discord.js");
 
 async function createRole(guild, roleName) {
 	if (!guild) {
@@ -7,15 +7,18 @@ async function createRole(guild, roleName) {
 
 	//check if role exists
 	await guild.roles.fetch();
-	if (guild.roles.cache.find((role) => role.name === roleName)) {
-		return;
+	const foundRoles  = guild.roles.cache.find((role) => role.name === roleName);
+	if (foundRoles) {
+		return foundRoles;
 	}
 
-	guild.roles.create({
+	const role = await guild.roles.create({
 		name: roleName,
 		hoist: true,
 		mentionable: true,
 	});
+
+	return role;
 }
 
 module.exports = createRole;
